@@ -39,12 +39,11 @@ const setupTables = async (client: Client) => {
     console.error("Error setting up tables", err);
   }
 };
+const client = new Client({
+  connectionString: process.env.DATABASE_URL, // Connect to the 'artist' database
+});
 
 const connectDB = async () => {
-  const client = new Client({
-    connectionString: process.env.DATABASE_URL, // Connect to the 'artist' database
-  });
-
   try {
     await createDatabase(); // Ensure the database is created
     await client.connect(); // Connect to the 'artist' database
@@ -58,4 +57,4 @@ const connectDB = async () => {
   }
 };
 
-export { connectDB };
+export { client, connectDB };
