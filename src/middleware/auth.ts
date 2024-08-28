@@ -6,7 +6,7 @@ interface AuthenticatedRequest extends Request {
   user?: User;
 }
 
-export const authenticateJWT = (
+export const authenticate = (
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
