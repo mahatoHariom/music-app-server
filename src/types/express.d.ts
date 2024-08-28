@@ -1,4 +1,4 @@
-import { User } from "../types/index";
+import { User } from "./index";
 declare global {
   namespace Express {
     interface Request {
