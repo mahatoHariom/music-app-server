@@ -1,4 +1,4 @@
-import pkg, { Client } from "pg";
+import pkg, { Client, PoolClient } from "pg";
 import createUserTable from "./models/user.models";
 import { createArtistTable } from "./models/artist.model";
 import { createMusicTable } from "./models/music.model";
