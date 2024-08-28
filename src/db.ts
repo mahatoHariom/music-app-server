@@ -5,22 +5,24 @@ import { createMusicTable } from "./models/music.model";
 
 const createDatabase = async () => {
   const defaultClient = new Client({
-    connectionString: process.env.DEFAULT_DATABASE_URL, // Connect to a default database like 'postgres'
+    host: process.env.DB_HOST,
+    port: parseInt(process.env.DB_PORT || "5432", 10),
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME || "new_artist_manage",
   });
 
   try {
     await defaultClient.connect();
 
-    // Check if the 'artist' database exists
     const res = await defaultClient.query(
-      `SELECT 1 FROM pg_database WHERE datname='artist'`
+      `SELECT 1 FROM pg_database WHERE datname='new_artist_manage'`
     );
     if (res.rowCount === 0) {
-      // Create the 'artist' database if it does not exist
-      await defaultClient.query("CREATE DATABASE artist");
-      console.log("Database 'artist' created successfully.");
+      await defaultClient.query(`CREATE DATABASE new_artist_manage`);
+      console.log(`Database new_artist_manage created successfully.`);
     } else {
-      console.log("Database 'artist' already exists.");
+      console.log(`Database new_artist_manage already exists.`);
     }
   } catch (err) {
     console.error("Error creating the database", err);
@@ -29,31 +31,22 @@ const createDatabase = async () => {
   }
 };
 
-const setupTables = async (client: Client) => {
+const client = new Client({
+  host: process.env.DB_HOST,
+  port: parseInt(process.env.DB_PORT || "5432", 10),
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME || "new_artist_manage",
+});
+const connectDB = async () => {
   try {
+    await createDatabase();
+    await client.connect();
     await client.query(createUserTable);
     await client.query(createArtistTable);
     await client.query(createMusicTable);
-    console.log("Tables created successfully.");
-  } catch (err) {
-    console.error("Error setting up tables", err);
-  }
-};
-const client = new Client({
-  connectionString: process.env.DATABASE_URL, // Connect to the 'artist' database
-});
-
-const connectDB = async () => {
-  try {
-    await createDatabase(); // Ensure the database is created
-    await client.connect(); // Connect to the 'artist' database
-    console.log("Connected to the database.");
-
-    await setupTables(client); // Set up tables
   } catch (err) {
     console.error("Error connecting to the database", err);
-  } finally {
-    await client.end();
   }
 };
 

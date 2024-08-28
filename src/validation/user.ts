@@ -23,7 +23,7 @@ export const registerValidation = (data: RegisterData) => {
       .string()
       .min(6, { message: "Password must be at least 6 characters" }),
     dob: z.date({ required_error: "Date of birth is required" }),
-    gender: z.enum(["male", "female", "other"], {
+    gender: z.enum(["M", "F", "O"], {
       required_error: "Gender is required",
     }),
   });
