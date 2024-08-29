@@ -1,4 +1,3 @@
-// middlewares/error-handler.ts
 import { Request, Response, NextFunction } from "express";
 import { HttpError } from "../utils/http-error";
 
@@ -17,7 +16,6 @@ export const errorHandler = (
     });
   }
 
-  // For unhandled errors, respond with a generic 500 Internal Server Error
   return res.status(500).json({
     status: "error",
     message: "Internal server error",

@@ -11,19 +11,19 @@ export const createArtist = async (
   res: Response
 ): Promise<Response> => {
   const { dob, ...rest } = req.body;
-  console.log("hello");
-  const parsedDob = new Date(dob);
 
+  const parsedDob = new Date(dob);
   if (isNaN(parsedDob.getTime())) {
-    throw new HttpError(400, "Invalid date format for dob");
+    throw new HttpError("Invalid date format for dob", 400);
   }
+
   const requestBody = { ...rest, dob: parsedDob };
   const validationResult = artistValidation(requestBody);
 
   if (!validationResult.success) {
     throw new HttpError(
-      400,
-      validationResult.error.errors.map((err) => err.message).join(", ")
+      validationResult.error.errors.map((err) => err.message).join(", "),
+      400
     );
   }
 
@@ -37,7 +37,7 @@ export const createArtist = async (
     });
 
     if (artistExists.rows.length > 0) {
-      return res.status(400).json({ message: "Artist already exists" });
+      throw new HttpError("Artist already exists", 400);
     }
 
     const query = `
@@ -62,7 +62,7 @@ export const createArtist = async (
       .json({ message: "Artist created successfully", data: result.rows[0] });
   } catch (error) {
     console.error("Error creating artist:", error);
-    return res.status(500).json({ message: "Internal server error", error });
+    throw new HttpError("Internal server error", 500);
   }
 };
 
@@ -75,7 +75,7 @@ export const getArtists = async (
     return res.status(200).json({ data: result.rows });
   } catch (error) {
     console.error("Error fetching artists:", error);
-    return res.status(500).json({ message: "Internal server error", error });
+    throw new HttpError("Internal server error", 500);
   }
 };
 
@@ -91,13 +91,13 @@ export const getArtistById = async (
     });
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ message: "Artist not found" });
+      throw new HttpError("Artist not found", 404);
     }
 
     return res.status(200).json({ data: result.rows[0] });
   } catch (error) {
     console.error("Error fetching artist by ID:", error);
-    return res.status(500).json({ message: "Internal server error", error });
+    throw new HttpError("Internal server error", 500);
   }
 };
 
@@ -117,7 +117,7 @@ export const updateArtistById = async (
 
   const parsedDob = new Date(dob);
   if (isNaN(parsedDob.getTime())) {
-    return res.status(400).json({ message: "Invalid date format for dob" });
+    throw new HttpError("Invalid date format for dob", 400);
   }
 
   const validatedBody = {
@@ -133,10 +133,11 @@ export const updateArtistById = async (
 
   if (!validationResult.success) {
     throw new HttpError(
-      400,
-      validationResult.error.errors.map((err) => err.message).join(", ")
+      validationResult.error.errors.map((err) => err.message).join(", "),
+      400
     );
   }
+
   try {
     const artistExists = await client.query({
       text: "SELECT * FROM artist WHERE id = $1",
@@ -144,7 +145,7 @@ export const updateArtistById = async (
     });
 
     if (artistExists.rows.length === 0) {
-      return res.status(404).json({ message: "Artist not found" });
+      throw new HttpError("Artist not found", 404);
     }
 
     const query = `
@@ -167,7 +168,7 @@ export const updateArtistById = async (
     return res.status(200).json({ message: "Artist updated successfully" });
   } catch (error) {
     console.error("Error updating artist:", error);
-    return res.status(500).json({ message: "Internal server error", error });
+    throw new HttpError("Internal server error", 500);
   }
 };
 
@@ -183,13 +184,13 @@ export const deleteArtistById = async (
     });
 
     if (result.rowCount === 0) {
-      return res.status(404).json({ message: "Artist not found" });
+      throw new HttpError("Artist not found", 404);
     }
 
     return res.status(200).json({ message: "Artist deleted successfully" });
   } catch (error) {
     console.error("Error deleting artist:", error);
-    return res.status(500).json({ message: "Internal server error", error });
+    throw new HttpError("Internal server error", 500);
   }
 };
 
@@ -236,20 +237,16 @@ export const uploadArtists = async (
             .json({ message: "Artists uploaded successfully" });
         } catch (error) {
           console.error("Error inserting artist from CSV:", error);
-          return res
-            .status(500)
-            .json({ message: "Failed to insert artists from CSV", error });
+          throw new HttpError("Failed to insert artists from CSV", 500);
         }
       })
       .on("error", (error: Error) => {
         console.error("Error uploading CSV:", error);
-        return res
-          .status(500)
-          .json({ message: "Failed to upload the CSV", error });
+        throw new HttpError("Failed to upload the CSV", 500);
       });
   } catch (error) {
     console.error("Error handling CSV upload:", error);
-    return res.status(500).json({ message: "Failed to upload the CSV", error });
+    throw new HttpError("Failed to upload the CSV", 500);
   }
 };
 
@@ -298,6 +295,6 @@ export const importArtist = async (
     return res.status(200).send(csv);
   } catch (error) {
     console.error("Error exporting artist data:", error);
-    return res.status(500).json({ error: "Internal Server Error" });
+    throw new HttpError("Internal Server Error", 500);
   }
 };

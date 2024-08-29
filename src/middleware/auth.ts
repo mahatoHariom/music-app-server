@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { User } from "../types";
+import { HttpError } from "../utils/http-error";
 
 interface AuthenticatedRequest extends Request {
   user?: User;
@@ -14,15 +15,15 @@ export const authenticate = (
   const token = req.header("Authorization")?.split(" ")[1];
 
   if (!token) {
-    return res.status(401).json({ error: "No token provided" });
+    return next(new HttpError("No token provided", 401));
   }
 
   jwt.verify(token, process.env.JWT_SECRET as string, (err, decoded) => {
     if (err) {
-      return res.status(401).json({ error: "Token is not valid" });
+      return next(new HttpError("Token is not valid", 401));
     }
 
-    req.user = decoded as User; 
+    req.user = decoded as User;
     next();
   });
 };
