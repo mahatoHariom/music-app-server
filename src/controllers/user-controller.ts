@@ -4,7 +4,11 @@ import { HttpError } from "../utils/http-error";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
-import { loginValidation, registerValidation } from "../validation/user";
+import {
+  loginValidation,
+  registerValidation,
+  updateUserValidation,
+} from "../validation/user";
 import { generateTokens } from "../helpers/generate-token";
 import { User } from "../types";
 import { client } from "../db";
@@ -168,6 +172,104 @@ export const refreshToken = asyncWrapper(
   }
 );
 
+export const updateUser = asyncWrapper(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  if (isNaN(parseInt(id, 10))) {
+    throw new HttpError("Invalid user ID", 400);
+  }
+
+  const {
+    first_name,
+    last_name,
+    email,
+    password,
+    phone,
+    dob,
+    gender,
+    address,
+    role,
+  } = req.body;
+
+  const validationResult = updateUserValidation(req.body);
+  if (!validationResult.success) {
+    throw new HttpError(
+      validationResult.error.errors.map((err) => err.message).join(", "),
+      400
+    );
+  }
+
+  const existingUserResult = await client.query(
+    'SELECT * FROM "user" WHERE id = $1',
+    [id]
+  );
+  if (existingUserResult.rowCount === 0) {
+    throw new HttpError("User not found", 404);
+  }
+
+  if (email && email !== existingUserResult.rows[0].email) {
+    const emailCheckResult = await client.query(
+      'SELECT * FROM "user" WHERE email = $1',
+      [email]
+    );
+    if (emailCheckResult?.rowCount && emailCheckResult?.rowCount > 0) {
+      throw new HttpError("Email already exists", 400);
+    }
+  }
+  let hashedPassword = existingUserResult.rows[0].password;
+  if (password) {
+    const saltRounds = parseInt(process.env.SALT_ROUNDS || "10", 10);
+    hashedPassword = await bcrypt.hash(password, saltRounds);
+  }
+
+  const updateFields = {
+    first_name,
+    last_name,
+    email,
+    password: hashedPassword,
+    phone,
+    dob: dob ? new Date(dob) : existingUserResult.rows[0].dob,
+    gender: gender ? gender.toUpperCase() : existingUserResult.rows[0].gender,
+    address,
+    role,
+  };
+
+  const query = `
+    UPDATE "user" 
+    SET 
+      first_name = $1,
+      last_name = $2,
+      email = $3,
+      password = $4,
+      phone = $5,
+      dob = $6,
+      gender = $7,
+      address = $8,
+      role = $9,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = $10
+    RETURNING *`;
+
+  const values = [
+    updateFields.first_name || existingUserResult.rows[0].first_name,
+    updateFields.last_name || existingUserResult.rows[0].last_name,
+    updateFields.email || existingUserResult.rows[0].email,
+    updateFields.password,
+    updateFields.phone || existingUserResult.rows[0].phone,
+    updateFields.dob,
+    updateFields.gender || existingUserResult.rows[0].gender,
+    updateFields.address || existingUserResult.rows[0].address,
+    updateFields.role || existingUserResult.rows[0].role,
+    id,
+  ];
+  const result = await client.query(query, values);
+
+  if (result.rowCount === 0) {
+    throw new HttpError("Failed to update user", 400);
+  }
+
+  res.status(200).json(result.rows[0]);
+});
 export const getUsers = asyncWrapper(async (req: Request, res: Response) => {
   try {
     const result = await client.query('SELECT * FROM "user"');
