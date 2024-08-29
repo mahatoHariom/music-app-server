@@ -14,8 +14,9 @@ export const createUser = asyncWrapper(async (req: Request, res: Response) => {
   const parsedDob = new Date(dob);
 
   if (isNaN(parsedDob.getTime())) {
-    throw new HttpError(400, "Invalid date format for dob");
+    throw new HttpError("Invalid date format for dob", 400);
   }
+
   const requestBody = { ...rest, dob: parsedDob };
   const transformedRequestBody = {
     ...requestBody,
@@ -25,8 +26,8 @@ export const createUser = asyncWrapper(async (req: Request, res: Response) => {
   const validationResult = registerValidation(requestBody);
   if (!validationResult.success) {
     throw new HttpError(
-      400,
-      validationResult.error.errors.map((err) => err.message).join(", ")
+      validationResult.error.errors.map((err) => err.message).join(", "),
+      400
     );
   }
 
@@ -47,7 +48,7 @@ export const createUser = asyncWrapper(async (req: Request, res: Response) => {
   );
 
   if (existingUser?.rowCount && existingUser?.rowCount > 0) {
-    throw new HttpError(400, "Email already exists");
+    throw new HttpError("Email already exists", 400);
   }
 
   const saltRounds = parseInt(process.env.SALT_ROUNDS || "10", 10);
@@ -72,7 +73,7 @@ export const createUser = asyncWrapper(async (req: Request, res: Response) => {
   );
 
   if (result.rowCount === 0) {
-    throw new HttpError(400, "Failed to create user");
+    throw new HttpError("Failed to create user", 400);
   }
 
   res.status(201).json(result.rows[0]);
@@ -82,8 +83,8 @@ export const loginUser = asyncWrapper(async (req: Request, res: Response) => {
   const validationResult = loginValidation(req.body);
   if (!validationResult.success) {
     throw new HttpError(
-      400,
-      validationResult.error.errors.map((err) => err.message).join(", ")
+      validationResult.error.errors.map((err) => err.message).join(", "),
+      400
     );
   }
 
@@ -94,7 +95,7 @@ export const loginUser = asyncWrapper(async (req: Request, res: Response) => {
   ]);
 
   if (result.rowCount === 0) {
-    throw new HttpError(401, "Invalid credentials");
+    throw new HttpError("Invalid credentials", 401);
   }
 
   const user = result.rows[0];
@@ -102,7 +103,7 @@ export const loginUser = asyncWrapper(async (req: Request, res: Response) => {
   const isPasswordValid = await bcrypt.compare(password, user.password);
 
   if (!isPasswordValid) {
-    throw new HttpError(401, "Invalid credentials");
+    throw new HttpError("Invalid credentials", 401);
   }
 
   const accessToken = jwt.sign(
@@ -132,7 +133,7 @@ export const refreshToken = asyncWrapper(
     const { refreshToken } = req.body;
 
     if (!refreshToken) {
-      throw new HttpError(400, "Refresh token is required");
+      throw new HttpError("Refresh token is required", 400);
     }
 
     try {
@@ -142,13 +143,12 @@ export const refreshToken = asyncWrapper(
       ) as jwt.JwtPayload;
       const { userId } = decoded;
 
-      // Check if the user exists
       const result = await client.query('SELECT * FROM "user" WHERE id = $1', [
         userId,
       ]);
 
       if (result.rowCount === 0) {
-        throw new HttpError(401, "Invalid token");
+        throw new HttpError("Invalid token", 401);
       }
 
       const user: User = result.rows[0];
@@ -161,7 +161,7 @@ export const refreshToken = asyncWrapper(
         refreshToken: newRefreshToken,
       });
     } catch (error) {
-      throw new HttpError(401, "Invalid or expired refresh token");
+      throw new HttpError("Invalid or expired refresh token", 401);
     }
   }
 );
@@ -169,16 +169,15 @@ export const refreshToken = asyncWrapper(
 export const getUsers = asyncWrapper(async (req: Request, res: Response) => {
   try {
     const result = await client.query('SELECT * FROM "user"');
-    console.log(result);
 
     if (result.rowCount === 0) {
-      return res.status(404).json({ message: "No users found" });
+      throw new HttpError("No users found", 404);
     }
 
     res.status(200).json(result.rows);
   } catch (error) {
     console.error("Error fetching users:", error);
-    throw new HttpError(500, "Internal Server Error");
+    throw new HttpError("Internal Server Error", 500);
   }
 });
 
@@ -186,7 +185,7 @@ export const getUserById = asyncWrapper(async (req: Request, res: Response) => {
   const { id } = req.params;
 
   if (isNaN(parseInt(id, 10))) {
-    throw new HttpError(400, "Invalid user ID");
+    throw new HttpError("Invalid user ID", 400);
   }
 
   try {
@@ -195,13 +194,13 @@ export const getUserById = asyncWrapper(async (req: Request, res: Response) => {
     ]);
 
     if (result.rowCount === 0) {
-      return res.status(404).json({ message: "User not found" });
+      throw new HttpError("User not found", 404);
     }
 
     res.status(200).json(result.rows[0]);
   } catch (error) {
     console.error("Error fetching user:", error);
-    throw new HttpError(500, "Internal Server Error");
+    throw new HttpError("Internal Server Error", 500);
   }
 });
 
@@ -209,7 +208,7 @@ export const deleteUser = asyncWrapper(async (req: Request, res: Response) => {
   const { id } = req.params;
 
   if (isNaN(parseInt(id, 10))) {
-    throw new HttpError(400, "Invalid user ID");
+    throw new HttpError("Invalid user ID", 400);
   }
 
   try {
@@ -217,7 +216,7 @@ export const deleteUser = asyncWrapper(async (req: Request, res: Response) => {
       id,
     ]);
     if (userCheck.rowCount === 0) {
-      return res.status(404).json({ message: "User not found" });
+      throw new HttpError("User not found", 404);
     }
 
     const result = await client.query(
@@ -226,12 +225,12 @@ export const deleteUser = asyncWrapper(async (req: Request, res: Response) => {
     );
 
     if (result.rowCount === 0) {
-      throw new HttpError(400, "Failed to delete user");
+      throw new HttpError("Failed to delete user", 400);
     }
 
     res.status(200).json({ message: "User deleted successfully" });
   } catch (error) {
     console.error("Error deleting user:", error);
-    throw new HttpError(500, "Internal Server Error");
+    throw new HttpError("Internal Server Error", 500);
   }
 });
