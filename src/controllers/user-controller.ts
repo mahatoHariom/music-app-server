@@ -10,17 +10,12 @@ import { User } from "../types";
 import { client } from "../db";
 
 export const createUser = asyncWrapper(async (req: Request, res: Response) => {
-  // Extract and parse dob from request body
- 
   const { dob, ...rest } = req.body;
   const parsedDob = new Date(dob);
 
-  // Check if parsedDob is a valid date
   if (isNaN(parsedDob.getTime())) {
     throw new HttpError(400, "Invalid date format for dob");
   }
-
-  // Prepare the request body with parsed dob
   const requestBody = { ...rest, dob: parsedDob };
   const transformedRequestBody = {
     ...requestBody,
@@ -46,7 +41,6 @@ export const createUser = asyncWrapper(async (req: Request, res: Response) => {
     role = "super_admin",
   } = transformedRequestBody;
 
-  // Check for existing user
   const existingUser = await client.query(
     'SELECT * FROM "user" WHERE email = $1',
     [email]
@@ -56,11 +50,9 @@ export const createUser = asyncWrapper(async (req: Request, res: Response) => {
     throw new HttpError(400, "Email already exists");
   }
 
-  // Hash the password
   const saltRounds = parseInt(process.env.SALT_ROUNDS || "10", 10);
   const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-  // Insert the new user into the database
   const result = await client.query(
     `INSERT INTO "user" 
       (first_name, last_name, email, password, phone, dob, gender, address, role) 

@@ -12,10 +12,10 @@ import { authenticate } from "../middleware/auth";
 const router = express.Router();
 
 router.get("/", getMusic);
-router.get("/:id", authenticate, getMusicById);
-router.get("/artist/:artistId", authenticate, getMusicByArtistId);
-router.post("/", authenticate, createMusic);
-router.delete("/:id", authenticate, deleteMusicById);
-router.put("/:id", authenticate, updateMusicById);
+router.get("/:id", getMusicById);
+router.get("/artist/:artistId", getMusicByArtistId);
+router.post("/", createMusic);
+router.delete("/:id", deleteMusicById);
+router.put("/:id", updateMusicById);
 
 export default router;

@@ -11,6 +11,7 @@ export const createArtist = async (
   res: Response
 ): Promise<Response> => {
   const { dob, ...rest } = req.body;
+  console.log("hello");
   const parsedDob = new Date(dob);
 
   if (isNaN(parsedDob.getTime())) {
@@ -114,7 +115,6 @@ export const updateArtistById = async (
     no_of_albums_released,
   } = req.body;
 
-  // Parse and validate the dob
   const parsedDob = new Date(dob);
   if (isNaN(parsedDob.getTime())) {
     return res.status(400).json({ message: "Invalid date format for dob" });
@@ -122,7 +122,7 @@ export const updateArtistById = async (
 
   const validatedBody = {
     name,
-    dob: parsedDob, // Use the parsed date
+    dob: parsedDob,
     gender,
     first_release_year,
     address,
@@ -154,7 +154,7 @@ export const updateArtistById = async (
       `;
     const values = [
       name,
-      parsedDob, // Pass the parsed date
+      parsedDob,
       gender,
       first_release_year,
       address,

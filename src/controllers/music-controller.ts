@@ -59,6 +59,7 @@ export const createMusic = async (
   res: Response
 ): Promise<Response> => {
   const { title, album_name, artist_id, genre } = req.body as Music;
+  console.log(title, album_name, artist_id, genre, "S");
   const validationResult = musicValidation(req.body);
   if (!validationResult.success) {
     const errorMessages = validationResult.error.errors.map(
@@ -66,12 +67,13 @@ export const createMusic = async (
     );
     return res.status(400).json({ message: errorMessages });
   }
-
+  console.log(title, album_name, artist_id, genre, "S");
   const query = `
-    INSERT INTO music (title, album_name, artist_id, genre, )
-    VALUES ($1, $2, $3, $4, $5)
+    INSERT INTO music (title, album_name, artist_id, genre)
+    VALUES ($1, $2, $3, $4)
     RETURNING *`;
   const values = [title, album_name, artist_id, genre];
+
   try {
     const result = await client.query(query, values);
     return res
@@ -121,11 +123,12 @@ export const updateMusicById = async (
   if (!musicExists.rows[0]) {
     return res.status(404).json({ message: "Music not found" });
   }
+
   try {
     const query = `
       UPDATE music 
-      SET title = $1, album_name = $2, artist_id = $3, genre = $4,  = $5
-      WHERE id = $6
+      SET title = $1, album_name = $2, artist_id = $3, genre = $4
+      WHERE id = $5
       RETURNING *;`;
     const values = [title, album_name, artist_id, genre, id];
     const result = await client.query(query, values);
@@ -136,3 +139,4 @@ export const updateMusicById = async (
     return res.status(500).json({ message: "Internal server error", error });
   }
 };
+
