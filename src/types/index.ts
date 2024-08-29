@@ -30,7 +30,7 @@ export interface Artist {
   updated_at: Date;
 }
 
-export interface Song {
+export interface Music {
   id: number;
   artist_id: number;
   title: string;

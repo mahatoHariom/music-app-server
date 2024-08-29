@@ -4,25 +4,30 @@ import fs from "fs";
 import { artistValidation } from "../validation/artist";
 import { client } from "../db";
 import { Artist } from "../types";
+import { HttpError } from "../utils/http-error";
 
 export const createArtist = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  const {
-    name,
-    dob,
-    gender,
-    first_release_year,
-    address,
-    no_of_albums_released,
-  } = req.body;
+  const { dob, ...rest } = req.body;
+  const parsedDob = new Date(dob);
 
-  const { error } = artistValidation(req.body);
-  if (error) {
-    const errorMessages = error.errors.map((detail) => detail.message);
-    return res.status(400).json({ message: errorMessages });
+  if (isNaN(parsedDob.getTime())) {
+    throw new HttpError(400, "Invalid date format for dob");
   }
+  const requestBody = { ...rest, dob: parsedDob };
+  const validationResult = artistValidation(requestBody);
+
+  if (!validationResult.success) {
+    throw new HttpError(
+      400,
+      validationResult.error.errors.map((err) => err.message).join(", ")
+    );
+  }
+
+  const { name, gender, first_release_year, address, no_of_albums_released } =
+    requestBody;
 
   try {
     const artistExists = await client.query({
@@ -35,19 +40,22 @@ export const createArtist = async (
     }
 
     const query = `
-      INSERT INTO artist (name, dob, gender, first_release_year, address, no_of_albums_released) 
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING *;
-    `;
+        INSERT INTO artist (name, dob, gender, first_release_year, address, no_of_albums_released) 
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING *;
+      `;
+
     const values = [
       name,
-      dob,
+      parsedDob,
       gender,
       first_release_year,
       address,
       no_of_albums_released,
     ];
+
     const result = await client.query(query, values);
+
     return res
       .status(201)
       .json({ message: "Artist created successfully", data: result.rows[0] });
@@ -106,12 +114,29 @@ export const updateArtistById = async (
     no_of_albums_released,
   } = req.body;
 
-  const { error } = artistValidation(req.body);
-  if (error) {
-    const errorMessages = error.errors.map((detail) => detail.message);
-    return res.status(400).json({ message: errorMessages });
+  // Parse and validate the dob
+  const parsedDob = new Date(dob);
+  if (isNaN(parsedDob.getTime())) {
+    return res.status(400).json({ message: "Invalid date format for dob" });
   }
 
+  const validatedBody = {
+    name,
+    dob: parsedDob, // Use the parsed date
+    gender,
+    first_release_year,
+    address,
+    no_of_albums_released,
+  };
+
+  const validationResult = artistValidation(validatedBody);
+
+  if (!validationResult.success) {
+    throw new HttpError(
+      400,
+      validationResult.error.errors.map((err) => err.message).join(", ")
+    );
+  }
   try {
     const artistExists = await client.query({
       text: "SELECT * FROM artist WHERE id = $1",
@@ -123,20 +148,22 @@ export const updateArtistById = async (
     }
 
     const query = `
-      UPDATE artist 
-      SET name = $1, dob = $2, gender = $3, first_release_year = $4, address = $5, no_of_albums_released = $6 
-      WHERE id = $7
-    `;
+        UPDATE artist 
+        SET name = $1, dob = $2, gender = $3, first_release_year = $4, address = $5, no_of_albums_released = $6 
+        WHERE id = $7
+      `;
     const values = [
       name,
-      dob,
+      parsedDob, // Pass the parsed date
       gender,
       first_release_year,
       address,
       no_of_albums_released,
       id,
     ];
+
     await client.query(query, values);
+
     return res.status(200).json({ message: "Artist updated successfully" });
   } catch (error) {
     console.error("Error updating artist:", error);

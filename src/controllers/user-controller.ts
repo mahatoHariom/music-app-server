@@ -11,7 +11,7 @@ import { client } from "../db";
 
 export const createUser = asyncWrapper(async (req: Request, res: Response) => {
   // Extract and parse dob from request body
-  console.log(req.body, "Sdf");
+ 
   const { dob, ...rest } = req.body;
   const parsedDob = new Date(dob);
 
