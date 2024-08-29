@@ -10,6 +10,7 @@ import { User } from "../types";
 import { client } from "../db";
 
 export const createUser = asyncWrapper(async (req: Request, res: Response) => {
+  console.log(req.body, "DS");
   const { dob, ...rest } = req.body;
   const parsedDob = new Date(dob);
 
@@ -125,6 +126,7 @@ export const loginUser = asyncWrapper(async (req: Request, res: Response) => {
   res.status(200).json({
     accessToken,
     refreshToken,
+    user,
   });
 });
 

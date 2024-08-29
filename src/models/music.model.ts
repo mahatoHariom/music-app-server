@@ -5,7 +5,7 @@ export const createMusicTable = `
         title VARCHAR(255) NOT NULL,
         album_name VARCHAR(255) NOT NULL,
         artist_id INTEGER REFERENCES artist(id),
-        genre VARCHAR(255) CHECK (genre IN ('rnb','country','classic','rock','jazz')),
+        genre genre_enum NOT NULL,
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
     );
