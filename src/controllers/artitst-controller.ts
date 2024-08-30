@@ -5,6 +5,7 @@ import { artistValidation } from "../validation/artist";
 import { client } from "../db";
 import { Artist } from "../types";
 import { HttpError } from "../utils/http-error";
+import { asyncWrapper } from "../utils/async-wrapper";
 
 export const createArtist = async (
   req: Request,
@@ -66,19 +67,52 @@ export const createArtist = async (
   }
 };
 
-export const getArtists = async (
-  req: Request,
-  res: Response
-): Promise<Response> => {
+export const getArtists = asyncWrapper(async (req: Request, res: Response) => {
   try {
-    const result = await client.query("SELECT * FROM artist");
-    return res.status(200).json({ data: result.rows });
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const limit = parseInt(req.query.limit as string, 10) || 5;
+    const search = req.query.search ? `%${req.query.search}%` : "%";
+    const offset = (page - 1) * limit;
+
+    const result = await client.query(
+      `SELECT * FROM artist
+       WHERE name ILIKE $1
+       ORDER BY id
+       LIMIT $2 OFFSET $3`,
+      [search, limit, offset]
+    );
+
+    if (result.rowCount === 0) {
+      throw new HttpError("No artists found", 404);
+    }
+
+    // Fetch total number of artists matching the search
+    const totalArtistsResult = await client.query(
+      `SELECT COUNT(*) FROM artist
+       WHERE name ILIKE $1`,
+      [search]
+    );
+    const totalArtists = parseInt(totalArtistsResult.rows[0].count, 10);
+
+    const totalPages = Math.ceil(totalArtists / limit);
+    const nextPage = page < totalPages ? page + 1 : null;
+
+    res.status(200).json({
+      artists: result.rows,
+      pagination: {
+        totalArtists,
+        totalPages,
+        currentPage: page,
+        limit,
+        nextPage,
+        pageLimit: limit,
+      },
+    });
   } catch (error) {
     console.error("Error fetching artists:", error);
-    throw new HttpError("Internal server error", 500);
+    throw new HttpError("Internal Server Error", 500);
   }
-};
-
+});
 export const getArtistById = async (
   req: Request,
   res: Response
