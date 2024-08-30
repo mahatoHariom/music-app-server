@@ -255,13 +255,36 @@ export const updateUser = asyncWrapper(async (req: Request, res: Response) => {
 
 export const getUsers = asyncWrapper(async (req: Request, res: Response) => {
   try {
-    const result = await client.query('SELECT * FROM "user"');
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const limit = parseInt(req.query.limit as string, 10) || 5;
+    const offset = (page - 1) * limit;
+
+    const result = await client.query(
+      'SELECT * FROM "user" ORDER BY id LIMIT $1 OFFSET $2',
+      [limit, offset]
+    );
 
     if (result.rowCount === 0) {
       throw new HttpError("No users found", 404);
     }
 
-    res.status(200).json(result.rows);
+    const totalUsersResult = await client.query('SELECT COUNT(*) FROM "user"');
+    const totalUsers = parseInt(totalUsersResult.rows[0].count, 10);
+
+    const totalPages = Math.ceil(totalUsers / limit);
+    const nextPage = page < totalPages ? page + 1 : null;
+
+    res.status(200).json({
+      users: result.rows,
+      pagination: {
+        totalUsers,
+        totalPages,
+        currentPage: page,
+        limit,
+        nextPage,
+        pageLimit: limit,
+      },
+    });
   } catch (error) {
     console.error("Error fetching users:", error);
     throw new HttpError("Internal Server Error", 500);
