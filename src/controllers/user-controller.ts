@@ -179,20 +179,13 @@ export const updateUser = asyncWrapper(async (req: Request, res: Response) => {
     throw new HttpError("Invalid user ID", 400);
   }
 
-  const {
-    first_name,
-    last_name,
-    email,
-    password,
-    phone,
-    dob,
-    gender,
-    address,
-    role,
-  } = req.body;
+  const { first_name, last_name, email, phone, dob, gender, address } =
+    req.body;
 
+  console.log(req.body, "b");
   const validationResult = updateUserValidation(req.body);
   if (!validationResult.success) {
+    console.log("he");
     throw new HttpError(
       validationResult.error.errors.map((err) => err.message).join(", "),
       400
@@ -216,23 +209,15 @@ export const updateUser = asyncWrapper(async (req: Request, res: Response) => {
       throw new HttpError("Email already exists", 400);
     }
   }
-  let hashedPassword = existingUserResult.rows[0].password;
-  if (password) {
-    const saltRounds = parseInt(process.env.SALT_ROUNDS || "10", 10);
-    hashedPassword = await bcrypt.hash(password, saltRounds);
-  }
 
-  const updateFields = {
-    first_name,
-    last_name,
-    email,
-    password: hashedPassword,
-    phone,
-    dob: dob ? new Date(dob) : existingUserResult.rows[0].dob,
-    gender: gender ? gender.toUpperCase() : existingUserResult.rows[0].gender,
-    address,
-    role,
-  };
+  let parsedDob = existingUserResult.rows[0].dob;
+  console.log(parsedDob, "dob");
+  if (dob) {
+    parsedDob = new Date(dob);
+    if (isNaN(parsedDob.getTime())) {
+      throw new HttpError("Invalid date format for dob", 400);
+    }
+  }
 
   const query = `
     UPDATE "user" 
@@ -240,28 +225,25 @@ export const updateUser = asyncWrapper(async (req: Request, res: Response) => {
       first_name = $1,
       last_name = $2,
       email = $3,
-      password = $4,
-      phone = $5,
-      dob = $6,
-      gender = $7,
-      address = $8,
-      role = $9,
+      phone = $4,
+      dob = $5,
+      gender = $6,
+      address = $7,
       updated_at = CURRENT_TIMESTAMP
-    WHERE id = $10
+    WHERE id = $8
     RETURNING *`;
 
   const values = [
-    updateFields.first_name || existingUserResult.rows[0].first_name,
-    updateFields.last_name || existingUserResult.rows[0].last_name,
-    updateFields.email || existingUserResult.rows[0].email,
-    updateFields.password,
-    updateFields.phone || existingUserResult.rows[0].phone,
-    updateFields.dob,
-    updateFields.gender || existingUserResult.rows[0].gender,
-    updateFields.address || existingUserResult.rows[0].address,
-    updateFields.role || existingUserResult.rows[0].role,
+    first_name || existingUserResult.rows[0].first_name,
+    last_name || existingUserResult.rows[0].last_name,
+    email || existingUserResult.rows[0].email,
+    phone || existingUserResult.rows[0].phone,
+    parsedDob,
+    gender ? gender.toUpperCase() : existingUserResult.rows[0].gender,
+    address || existingUserResult.rows[0].address,
     id,
   ];
+
   const result = await client.query(query, values);
 
   if (result.rowCount === 0) {
@@ -270,6 +252,7 @@ export const updateUser = asyncWrapper(async (req: Request, res: Response) => {
 
   res.status(200).json(result.rows[0]);
 });
+
 export const getUsers = asyncWrapper(async (req: Request, res: Response) => {
   try {
     const result = await client.query('SELECT * FROM "user"');

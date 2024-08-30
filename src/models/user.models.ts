@@ -1,6 +1,5 @@
 const createUserTable = `
-    DROP TABLE IF EXISTS "user" CASCADE;
-    CREATE TABLE "user" (
+    CREATE TABLE IF NOT EXISTS "user" (
         id SERIAL PRIMARY KEY,
         first_name VARCHAR(255) NOT NULL,
         last_name VARCHAR(255) NOT NULL,

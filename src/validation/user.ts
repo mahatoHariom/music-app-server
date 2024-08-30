@@ -37,9 +37,9 @@ export const updateUserValidation = (data: UpdateUserData) => {
     last_name: z.string().min(1, { message: "Last name is required" }),
     email: z.string().email({ message: "Invalid email" }),
     phone: z.string().min(1, { message: "Phone number is required" }),
-    dob: z.date({ required_error: "Date of birth is required" }),
-    gender: z.enum(["male", "female", "other"]),
+    dob: z.string({ required_error: "Date of birth is required" }),
+    gender: z.enum(["M", "F", "O"]),
+    address: z.string().min(1, { message: "Address is required" }),
   });
-
   return schema.safeParse(data);
 };
