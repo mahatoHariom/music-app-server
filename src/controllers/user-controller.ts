@@ -257,18 +257,26 @@ export const getUsers = asyncWrapper(async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string, 10) || 1;
     const limit = parseInt(req.query.limit as string, 10) || 5;
+    const search = req.query.search ? `%${req.query.search}%` : "%";
     const offset = (page - 1) * limit;
 
     const result = await client.query(
-      'SELECT * FROM "user" ORDER BY id LIMIT $1 OFFSET $2',
-      [limit, offset]
+      `SELECT * FROM "user"
+       WHERE first_name ILIKE $1 OR last_name ILIKE $1 OR email ILIKE $1
+       ORDER BY id
+       LIMIT $2 OFFSET $3`,
+      [search, limit, offset]
     );
 
     if (result.rowCount === 0) {
       throw new HttpError("No users found", 404);
     }
 
-    const totalUsersResult = await client.query('SELECT COUNT(*) FROM "user"');
+    const totalUsersResult = await client.query(
+      `SELECT COUNT(*) FROM "user"
+       WHERE first_name ILIKE $1 OR last_name ILIKE $1 OR email ILIKE $1`,
+      [search]
+    );
     const totalUsers = parseInt(totalUsersResult.rows[0].count, 10);
 
     const totalPages = Math.ceil(totalUsers / limit);
