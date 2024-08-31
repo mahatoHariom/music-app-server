@@ -7,14 +7,14 @@ import {
   getMusicById,
   updateMusicById,
 } from "../controllers/music-controller";
-import { authenticate } from "../middleware/auth";
+
 
 const router = express.Router();
 
 router.get("/", getMusic);
 router.get("/:id", getMusicById);
 router.get("/artist/:artistId", getMusicByArtistId);
-router.post("/", createMusic);
+router.post("/artist/:artist_id", createMusic);
 router.delete("/:id", deleteMusicById);
 router.put("/:id", updateMusicById);
 

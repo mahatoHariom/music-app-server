@@ -29,26 +29,66 @@ export const getMusicById = asyncWrapper(
 
 export const getMusicByArtistId = asyncWrapper(
   async (req: Request, res: Response) => {
-    const { artistId } = req.params;
-    const result = await client.query({
-      text: "SELECT * FROM music WHERE artist_id = $1",
-      values: [artistId],
-    });
-    if (result.rowCount === 0) {
-      throw new HttpError("Music not found", 404);
+    try {
+      const { artistId } = req.params;
+      const page = parseInt(req.query.page as string, 10) || 1;
+      const limit = parseInt(req.query.limit as string, 10) || 5;
+      const search = req.query.search ? `%${req.query.search}%` : "%";
+      const offset = (page - 1) * limit;
+
+      const result = await client.query({
+        text: `SELECT * FROM music WHERE artist_id = $1 AND (title ILIKE $2 OR album_name ILIKE $2) ORDER BY title LIMIT $3 OFFSET $4`,
+        values: [artistId, search, limit, offset],
+      });
+
+      if (result.rowCount === 0) {
+        throw new HttpError("Music not found", 404);
+      }
+
+      const totalRecordsResult = await client.query({
+        text: `SELECT COUNT(*) FROM music WHERE artist_id = $1 AND (title ILIKE $2 OR album_name ILIKE $2)`,
+        values: [artistId, search],
+      });
+      const totalRecords = parseInt(totalRecordsResult.rows[0].count, 10);
+
+      const totalPages = Math.ceil(totalRecords / limit);
+      const nextPage = page < totalPages ? page + 1 : null;
+
+      res.status(200).json({
+        data: result.rows,
+        pagination: {
+          totalRecords,
+          totalPages,
+          currentPage: page,
+          limit,
+          nextPage,
+          pageLimit: limit,
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching music:", error);
+      throw new HttpError("Internal Server Error", 500);
     }
-    return res.status(200).json({ data: result.rows });
   }
 );
-
 export const createMusic = asyncWrapper(async (req: Request, res: Response) => {
-  const { title, album_name, artist_id, genre } = req.body as Music;
+  const { artist_id } = req.params;
+  console.log(req.params, "parr");
+
+  const { title, album_name, genre } = req.body as Music;
+
   const validationResult = musicValidation(req.body);
   if (!validationResult.success) {
     const errorMessages = validationResult.error.errors.map(
       (err) => err.message
     );
     throw new HttpError(errorMessages.join(", "), 400);
+  }
+
+  const artistQuery = "SELECT 1 FROM artists WHERE id = $1";
+  const artistResult = await client.query(artistQuery, [artist_id]);
+  if (artistResult.rowCount === 0) {
+    throw new HttpError("Artist not found", 404);
   }
 
   const query = `
@@ -61,6 +101,7 @@ export const createMusic = asyncWrapper(async (req: Request, res: Response) => {
   if (result.rowCount === 0) {
     throw new HttpError("Failed to create music record", 400);
   }
+
   return res
     .status(201)
     .json({ message: "Music created successfully", data: result.rows[0] });
