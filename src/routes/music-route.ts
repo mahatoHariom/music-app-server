@@ -8,7 +8,6 @@ import {
   updateMusicById,
 } from "../controllers/music-controller";
 
-
 const router = express.Router();
 
 router.get("/", getMusic);
@@ -16,6 +15,6 @@ router.get("/:id", getMusicById);
 router.get("/artist/:artistId", getMusicByArtistId);
 router.post("/artist/:artist_id", createMusic);
 router.delete("/:id", deleteMusicById);
-router.put("/:id", updateMusicById);
+router.put("/:id/artist/:artistId", updateMusicById);
 
 export default router;

@@ -16,6 +16,8 @@ export const getMusic = asyncWrapper(async (req: Request, res: Response) => {
 export const getMusicById = asyncWrapper(
   async (req: Request, res: Response) => {
     const { id } = req.params;
+
+    console.log(id, "hiy");
     const result = await client.query({
       text: "SELECT * FROM music WHERE id = $1",
       values: [id],
@@ -23,7 +25,8 @@ export const getMusicById = asyncWrapper(
     if (result.rowCount === 0) {
       throw new HttpError("Music not found", 404);
     }
-    return res.status(200).json({ data: result.rows[0] });
+
+    return res.status(200).json({ data: result?.rows[0] });
   }
 );
 
@@ -130,8 +133,8 @@ export const deleteMusicById = asyncWrapper(
 
 export const updateMusicById = asyncWrapper(
   async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const { title, album_name, artist_id, genre } = req.body as Music;
+    const { id, artistId } = req.params;
+    const { title, album_name, genre } = req.body as Music;
 
     const musicExists = await client.query({
       text: "SELECT * FROM music WHERE id = $1",
@@ -147,7 +150,7 @@ export const updateMusicById = asyncWrapper(
     SET title = $1, album_name = $2, artist_id = $3, genre = $4
     WHERE id = $5
     RETURNING *;`;
-    const values = [title, album_name, artist_id, genre, id];
+    const values = [title, album_name, artistId, genre, id];
 
     const result = await client.query(query, values);
 
