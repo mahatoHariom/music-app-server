@@ -117,6 +117,7 @@ export const getArtistById = async (
   res: Response
 ): Promise<Response> => {
   const { id } = req.params;
+  console.log("w");
   try {
     const result = await client.query({
       text: "SELECT * FROM artist WHERE id = $1",
@@ -147,7 +148,6 @@ export const updateArtistById = async (
     address,
     no_of_albums_released,
   } = req.body.artist;
-  console.log(req.body.artist, "Ar");
 
   const parsedDob = new Date(dob);
 
@@ -231,6 +231,7 @@ export const uploadArtists = async (
 ): Promise<any> => {
   try {
     const results: Artist[] = [];
+    console.log(req.file, "fle");
 
     fs.createReadStream(req.file?.path || "")
       .pipe(csvParser({ separator: "," }))
@@ -281,51 +282,77 @@ export const uploadArtists = async (
   }
 };
 
-export const importArtist = async (
+export const exportArtist = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
+  const { id } = req.params;
   try {
-    const tableName = "artist";
     const query = `
-        WITH columns AS (
-          SELECT array_agg(column_name::text) AS column_names
-          FROM information_schema.columns
-          WHERE table_name = $1
-        )
-        SELECT
-          COALESCE(array_to_string(array_agg(to_json(t)), ','), '[]') AS data,
-          (SELECT column_names FROM columns) AS column_names
-        FROM (
-          SELECT * FROM ${tableName}
-        ) t
+        SELECT * FROM artist WHERE id = $1
       `;
-    const result = await client.query(query, [tableName]);
-
-    const { data, column_names }: { data: string; column_names: string[] } =
-      result.rows[0];
-    const newList: string[] = data.split("},");
-
-    const rows: string[] = newList.map((item, index) => {
-      if (index < newList.length - 1) {
-        return item + "}";
-      }
-      return item;
+    const result = await client.query({
+      text: query,
+      values: [id],
     });
 
+    if (result.rows.length === 0) {
+      throw new HttpError("Artist not found", 404);
+    }
+
+    const artist = result.rows[0];
+    const column_names = Object.keys(artist);
     let csv = column_names.join(",") + "\n";
-    const parsedData: string[][] = rows.map((row: string) => {
-      const rowData = JSON.parse(row);
-      return column_names.map((column) => rowData[column]);
-    });
-
-    parsedData.forEach((row: string[]) => {
-      csv += row.join(",") + "\n";
-    });
+    csv += column_names.map((column) => artist[column]).join(",") + "\n";
 
     return res.status(200).send(csv);
   } catch (error) {
     console.error("Error exporting artist data:", error);
     throw new HttpError("Internal Server Error", 500);
+  }
+};
+
+export const exportAllArtists = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  try {
+    const query = `SELECT * FROM artist`;
+    const result = await client.query(query);
+    const rows = result.rows;
+
+    if (rows.length === 0) {
+      return res.status(404).send("No artists found");
+    }
+
+    const columnNames = Object.keys(rows[0]);
+    let csv = columnNames.join(",") + "\n";
+
+    const escapeCsvValue = (value: any): string => {
+      if (value === null || value === undefined) {
+        return "";
+      }
+      let str = String(value);
+      if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+        str = `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    rows.forEach((row) => {
+      csv +=
+        columnNames.map((col) => escapeCsvValue(row[col])).join(",") + "\n";
+    });
+
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=artists_all.csv"
+    );
+
+    return res.status(200).send(csv);
+  } catch (error) {
+    console.error("Error exporting artists data:", error);
+    return res.status(500).send("Internal Server Error");
   }
 };
