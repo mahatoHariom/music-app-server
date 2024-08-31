@@ -15,6 +15,6 @@ router.get("/:id", getMusicById);
 router.get("/artist/:artistId", getMusicByArtistId);
 router.post("/artist/:artist_id", createMusic);
 router.delete("/:id", deleteMusicById);
-router.put("/:id/artist/:artistId", updateMusicById);
+router.put("/:id/update/artist/:artistId", updateMusicById);
 
 export default router;

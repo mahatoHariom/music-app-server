@@ -16,8 +16,6 @@ export const getMusic = asyncWrapper(async (req: Request, res: Response) => {
 export const getMusicById = asyncWrapper(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-
-    console.log(id, "hiy");
     const result = await client.query({
       text: "SELECT * FROM music WHERE id = $1",
       values: [id],
@@ -134,6 +132,7 @@ export const deleteMusicById = asyncWrapper(
 export const updateMusicById = asyncWrapper(
   async (req: Request, res: Response) => {
     const { id, artistId } = req.params;
+    console.log(req.params);
     const { title, album_name, genre } = req.body as Music;
 
     const musicExists = await client.query({
