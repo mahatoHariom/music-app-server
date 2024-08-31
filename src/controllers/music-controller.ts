@@ -73,7 +73,6 @@ export const getMusicByArtistId = asyncWrapper(
 );
 export const createMusic = asyncWrapper(async (req: Request, res: Response) => {
   const { artist_id } = req.params;
-  console.log(req.params, "parr");
 
   const { title, album_name, genre } = req.body as Music;
 
@@ -85,7 +84,7 @@ export const createMusic = asyncWrapper(async (req: Request, res: Response) => {
     throw new HttpError(errorMessages.join(", "), 400);
   }
 
-  const artistQuery = "SELECT 1 FROM artists WHERE id = $1";
+  const artistQuery = "SELECT 1 FROM artist WHERE id = $1";
   const artistResult = await client.query(artistQuery, [artist_id]);
   if (artistResult.rowCount === 0) {
     throw new HttpError("Artist not found", 404);
