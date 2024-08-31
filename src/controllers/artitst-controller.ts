@@ -86,7 +86,6 @@ export const getArtists = asyncWrapper(async (req: Request, res: Response) => {
       throw new HttpError("No artists found", 404);
     }
 
-    // Fetch total number of artists matching the search
     const totalArtistsResult = await client.query(
       `SELECT COUNT(*) FROM artist
        WHERE name ILIKE $1`,
@@ -147,12 +146,10 @@ export const updateArtistById = async (
     first_release_year,
     address,
     no_of_albums_released,
-  } = req.body;
+  } = req.body.artist;
+  console.log(req.body.artist, "Ar");
 
   const parsedDob = new Date(dob);
-  if (isNaN(parsedDob.getTime())) {
-    throw new HttpError("Invalid date format for dob", 400);
-  }
 
   const validatedBody = {
     name,
