@@ -103,7 +103,7 @@ export const loginUser = asyncWrapper(async (req: Request, res: Response) => {
     throw new HttpError("Invalid credentials", 401);
   }
 
-  const user = result.rows[0];
+  const user = result.rows[0] as User;
 
   const isPasswordValid = await bcrypt.compare(password, user.password);
 
@@ -111,12 +111,13 @@ export const loginUser = asyncWrapper(async (req: Request, res: Response) => {
     throw new HttpError("Invalid credentials", 401);
   }
 
+  const { password: newPassword, ...userWithoutPassword } = user;
   const { accessToken, refreshToken } = generateTokens(user);
 
   res.status(200).json({
     accessToken,
     refreshToken,
-    user,
+    userWithoutPassword,
   });
 });
 
