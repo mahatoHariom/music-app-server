@@ -247,7 +247,7 @@ export const getUsers = asyncWrapper(async (req: Request, res: Response) => {
     const offset = (page - 1) * limit;
 
     const result = await client.query(
-      `SELECT id, first_name, last_name, email, created_at, updated_at
+      `SELECT id, first_name, last_name, email, created_at, updated_at,address,phone,dob,gender
        FROM "user"
        WHERE first_name ILIKE $1 OR last_name ILIKE $1 OR email ILIKE $1
        ORDER BY id
