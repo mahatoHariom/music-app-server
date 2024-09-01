@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import { Role } from "../types";
 
-export const checkRole = (role: Role) => {
+export const checkRoles = (roles: Role[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (req?.user?.role !== role) {
+    if (!roles.includes(req?.user?.role as Role)) {
       return res.status(403).json({ error: "Access denied" });
     }
     next();
