@@ -111,21 +111,7 @@ export const loginUser = asyncWrapper(async (req: Request, res: Response) => {
     throw new HttpError("Invalid credentials", 401);
   }
 
-  const accessToken = jwt.sign(
-    { userId: user.id, email: user.email },
-    process.env.JWT_SECRET as string,
-    {
-      expiresIn: "15m",
-    }
-  );
-
-  const refreshToken = jwt.sign(
-    { userId: user.id, email: user.email },
-    process.env.JWT_REFRESH_SECRET as string,
-    {
-      expiresIn: "7d",
-    }
-  );
+  const { accessToken, refreshToken } = generateTokens(user);
 
   res.status(200).json({
     accessToken,
@@ -261,7 +247,8 @@ export const getUsers = asyncWrapper(async (req: Request, res: Response) => {
     const offset = (page - 1) * limit;
 
     const result = await client.query(
-      `SELECT * FROM "user"
+      `SELECT id, first_name, last_name, email, created_at, updated_at
+       FROM "user"
        WHERE first_name ILIKE $1 OR last_name ILIKE $1 OR email ILIKE $1
        ORDER BY id
        LIMIT $2 OFFSET $3`,
