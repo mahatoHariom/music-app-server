@@ -42,7 +42,7 @@ const connectDB = async () => {
   try {
     const saltRounds = parseInt(process.env.SALT_ROUNDS || "10", 10);
 
-    // Hash passwords
+  
     const hashedPasswordSuperAdmin = await bcrypt.hash("admin123", saltRounds);
 
     await createDatabase();
